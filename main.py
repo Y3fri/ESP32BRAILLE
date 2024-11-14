@@ -9,8 +9,8 @@ from machine import DAC, Pin, freq
 
 
 # Configuración WiFi
-SSID = "*******"
-PASSWORD = "********"
+SSID = "SILVA"
+PASSWORD = "F_G_S#221201"
 
 # Configurar frecuencia de CPU
 freq(240000000)
@@ -138,7 +138,7 @@ pitido_suave(dac)
 
 
 def reproducir_audio(carpeta, archivo):    
-    api_url = f"http://192.168.1.9:4000/audio/{carpeta}/{archivo}/file"    
+    api_url = f"http://192.168.1.19:4000/audio/{carpeta}/{archivo}/file"    
     try:
         response = urequests.get(api_url)        
         if response.status_code == 200:                        
@@ -167,21 +167,40 @@ reproducir_audio("Inicio", "tablero")
 
 
 def enviar_datos(data, tipo):
-    try:
-        url = f"http://192.168.1.9:4000/{tipo}"
-        headers = {"Content-Type": "application/json"}
-        uz_json = json.dumps(data)
+    response = None
+    intentos = 0
+    exito = False
+    
+    while intentos < 2 and not exito:  # Máximo dos intentos si el primero falla
+        try:
+            if intentos > 0:
+                print("Reintentando envío...")
+                time.sleep(1)  # Espera un segundo antes del segundo intento
 
-        response = urequests.post(url, data=uz_json, headers=headers)        
-        if response.status_code == 200:
-            reproducir_audio("Inicio", "finalevalacion")
-        else:
-            reproducir_audio("Inicio", "error")
-    except Exception as e:
-        reproducir_audio("Inicio", "error")
-    finally:
-        if response:
-            response.close()
+            url = f"http://192.168.1.19:4000/{tipo}"
+            headers = {"Content-Type": "application/json"}
+            uz_json = json.dumps(data)
+
+            response = urequests.post(url, data=uz_json, headers=headers)
+            if response.status_code == 200:
+                reproducir_audio("Inicio", "finalevalacion")
+                exito = True  # Marca como éxito y sale del bucle
+            else:
+                
+                print("Error:", response.status_code, response.text)
+                
+        except Exception as e:
+            
+            print("Exception:", e)
+        
+        finally:
+            if response:
+                response.close()
+        
+        intentos += 1
+    
+    if not exito:
+        print("No se pudo enviar los datos tras dos intentos.")
 
 estado_botones = {
     "boton22": False,
@@ -1213,8 +1232,8 @@ def manejar_boton51(pin):
             hora_actual = f"{tiempo_actual[3]:02d}:{tiempo_actual[4]:02d}:{tiempo_actual[5]:02d}"  # Hora:Minuto:Segundo
             pitido()
             reproducir_audio("evaluacionUZ", "evaluacionUZ")
-            reproducir_audio("Inicio", "recomeuzadionevaluacio")
-            reproducir_audio("Inicio", "indicacionesevaluacion")            
+            reproducir_audio("Inicio", "recomentadionevaluacio")
+            reproducir_audio("Inicio", "indicacionesevaluacion")             
 
             uz_data = generar_uz_data(fecha_actual, hora_actual)
             enviar_datos(uz_data, 'uz')
@@ -1316,3 +1335,5 @@ boton39.irq(trigger=Pin.IRQ_FALLING, handler=manejar_boton51)
 
 while True:
     time.sleep(1)
+
+
